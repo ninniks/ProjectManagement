@@ -50,9 +50,7 @@
         ],
         "post-install-cmd": [
             "php artisan clear-compiled",
-            "chmod -R 777 public/",
-            "php artisan test",
-            "php artisan migrate:fresh --seed --force"
+            "chmod -R 777 public/"
         ]
     },
     "extra": {

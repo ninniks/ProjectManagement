@@ -1,0 +1,17 @@
+{
+    "name": "Project Management APP",
+    "description": "This is an application for mangaging projects with tasks",
+    "keywords": [
+        "Laravel",
+        "JWT",
+        "TEST"
+    ],
+    "repository": "https://github.com/ninniks/ProjectManagement.git",
+    "environments": {
+        "test": {
+            "scripts": {
+                "test": "@php artisan test"
+            }
+        }
+    }
+}
