@@ -10,7 +10,7 @@
     "environments": {
         "test": {
             "scripts": {
-                "test": "@php artisan test"
+                "test": "php artisan test"
             }
         }
     }
