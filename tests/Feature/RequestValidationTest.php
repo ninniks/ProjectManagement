@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enum\TaskPriorityEnum;
 use App\Models\Project;
+use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Ramsey\Uuid\Uuid;
@@ -13,7 +14,7 @@ class RequestValidationTest extends TestCase
 {
     use RefreshDatabase;
 
-    private static function invalidStoreProjectsData(): array
+    public static function invalidStoreProjectsData(): array
     {
         return [
             "empty description" => [
@@ -55,7 +56,7 @@ class RequestValidationTest extends TestCase
         ];
     }
 
-    private static function invalidPatchProjectsData(): array
+    public static function invalidPatchProjectsData(): array
     {
         return [
             "title null and description null" => [
@@ -81,7 +82,48 @@ class RequestValidationTest extends TestCase
         ];
     }
 
-    private static function invalidStoreTaskData(): array
+    public static function invalidStoreTaskData(): array
+    {
+        $fake_uuid = Uuid::uuid4()->toString();
+        return [
+            "all fields empty" => [
+                ['title' => '', 'description' => '', 'assignee' => '', 'difficulty' => '', 'priority' => ''],
+                ['title', 'description', 'assignee', 'difficulty', 'priority']
+            ],
+            "all fields null" => [
+                ['title' => null, 'description' => null, 'assignee' => null, 'difficulty' => null, 'priority' => null],
+                ['title', 'description', 'assignee', 'difficulty', 'priority']
+            ],
+            "invalid assignee" => [
+                ['title' => 'Valid Title', 'description' => 'Valid Description', 'assignee' => $fake_uuid, 'difficulty' => 1, 'priority' => TaskPriorityEnum::VeryHigh->value],
+                ['assignee']
+            ]
+        ];
+    }
+
+    public static function invalidLoginRequestData(): array
+    {
+        return [
+            'empty email and password' => [
+                ['email' => '', 'password' => ''],
+                ['email', 'password']
+            ],
+            'invalid email and valid password' => [
+                ['email' => 'fakemail.com', 'password' => 'password'],
+                ['email']
+            ],
+            'null email and password' => [
+                ['email' => null, 'password' => null],
+                ['email', 'password']
+            ],
+            'int email' => [
+                ['email' => 1234, 'password' => 'password'],
+                ['email']
+            ]
+        ];
+    }
+
+    public static function invalidUpdateTaskData(): array
     {
         $fake_uuid = Uuid::uuid4()->toString();
         return [
@@ -139,6 +181,37 @@ class RequestValidationTest extends TestCase
 
         $this->actingAs($user)
             ->postJson('/api/projects/'.$project->id.'/tasks', $invalidData)
+            ->assertInvalid($invalidFields, [], 'data')
+            ->assertStatus(422);
+    }
+
+    /**
+     * @param $invalidData
+     * @param $invalidFields
+     * @dataProvider invalidUpdateTaskData
+     */
+    public function test_update_task_with_invalid_data_fails($invalidData, $invalidFields)
+    {
+        $user = User::factory()->create();
+        $project = Project::factory()->create();
+        $task = Task::factory()->create([
+            'project_id' => $project->id
+        ]);
+
+        $this->actingAs($user)
+            ->patchJson('/api/projects/'.$project->id.'/tasks/'.$task->id, $invalidData)
+            ->assertInvalid($invalidFields, [], 'data')
+            ->assertStatus(422);
+    }
+
+    /**
+     * @param $invalidData
+     * @param $invalidFields
+     * @dataProvider invalidLoginRequestData
+     */
+    public function test_login_with_invalid_data($invalidData, $invalidFields)
+    {
+        $this->postJson('/api/login', $invalidData)
             ->assertInvalid($invalidFields, [], 'data')
             ->assertStatus(422);
     }

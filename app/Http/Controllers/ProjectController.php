@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Enum\ProjectStatusEnum;
 use App\Exceptions\ProjectNotFoundException;
 use App\Http\Rules\FilterRequest;
 use App\Http\Rules\PatchProjectFormRequest;
 use App\Http\Rules\StoreProjectFormRequest;
 use App\Http\Traits\QueryUtilityTrait;
 use App\Interfaces\ProjectRepositoryInterface;
-use App\Models\Project;
 use App\Repositories\ProjectRepository;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response as ResponseAlias;

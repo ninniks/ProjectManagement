@@ -61,7 +61,6 @@ class ProjectRepository implements ProjectRepositoryInterface
         if($status === ProjectStatusEnum::Closed->value){
             if($project->hasAllTasksCompleted()){
                 $project->update(['status' => $status]);
-                return true;
             }else{
                 return false;
             }

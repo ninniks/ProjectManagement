@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enum\CustomOrderByEnum;
 use App\Enum\ProjectStatusEnum;
 use App\Enum\TaskStatusEnum;
 use App\Models\Project;
@@ -231,5 +232,237 @@ class ProjectUnitTest extends TestCase
         $this->actingAs($user)
             ->patchJson(parent::BASE_URL . $project->id ."/".ProjectStatusEnum::Open->value)
             ->assertStatus(400);
+    }
+
+    public function test_closing_open_project_with_closed_tasks_success()
+    {
+        $user = User::factory()->create();
+        $project = Project::factory()->create();
+
+        Task::factory()->create([
+            'project_id' => $project->id,
+            'status'=> TaskStatusEnum::Closed->value
+        ]);
+
+
+        Task::factory()->create([
+            'project_id' => $project->id,
+            'status'=> TaskStatusEnum::Closed->value
+        ]);
+
+        $this->actingAs($user)
+            ->patchJson(parent::BASE_URL . $project->id ."/".ProjectStatusEnum::Closed->value)
+            ->assertStatus(204);
+    }
+
+    public function test_find_not_existent_project_returns_404()
+    {
+        $user = User::factory()->create();
+        $fake_project_uuid = fake()->uuid();
+
+        $this->actingAs($user)
+            ->getJson(parent::BASE_URL . $fake_project_uuid)
+            ->assertStatus(404);
+    }
+
+    public function test_update_non_existent_project_returns_404()
+    {
+        $user = User::factory()->create();
+        $fake_project_uuid = fake()->uuid();
+
+        $this->actingAs($user)
+            ->patchJson(parent::BASE_URL . $fake_project_uuid, ['title' => 'title'])
+            ->assertStatus(404);
+    }
+
+    public function test_update_non_existent_project_status_returns_404()
+    {
+        $user = User::factory()->create();
+        $fake_project_uuid = fake()->uuid();
+
+        $this->actingAs($user)
+            ->patchJson(parent::BASE_URL . $fake_project_uuid."/".ProjectStatusEnum::Closed->value)
+            ->assertStatus(404);
+    }
+
+    public function test_index_filters_open_and_closed_projects()
+    {
+        $user = User::factory()->create();
+        $projectA = Project::factory()->create([
+            'title' => 'Project A',
+            'description' => 'Project A description',
+            'status' => ProjectStatusEnum::Open->value
+        ]);
+
+        $projectB = Project::factory()->create([
+            'title' => 'Project B',
+            'description' => 'Project B description',
+            'status' => ProjectStatusEnum::Closed->value
+        ]);
+
+        $expected_slugA = Slugify::create()->slugify($projectA->id ." Project A");
+        $expected_slugB = Slugify::create()->slugify($projectB->id ." Project B");
+
+        $response = $this->actingAs($user)
+            ->getJson(parent::BASE_URL."?withClosed=true&onlyClosed=true&sortBy=".CustomOrderByEnum::ALPHA_ASC->value."&page=1&perPage=5")
+            ->assertStatus(200);
+
+            $response->assertJson(fn (AssertableJson $json) =>
+            $json->has('data', 2)
+                ->has('data.0', fn (AssertableJson $json) =>
+                $json->where('id', $projectA->id)
+                    ->where('title', 'Project A')
+                    ->where('description', 'Project A description')
+                    ->where('slug',$expected_slugA)
+                    ->where('status', ProjectStatusEnum::Open->value)
+                    ->where('tasks_count', 0)
+                    ->where('completed_tasks_count', 0)
+                    ->missing('created_at')
+                    ->missing('updated_at')
+                )
+                ->has('data.1', fn(AssertableJson $json) =>
+                    $json->where('id', $projectB->id)
+                        ->where('title', 'Project B')
+                        ->where('description', 'Project B description')
+                        ->where('slug',$expected_slugB)
+                        ->where('status', ProjectStatusEnum::Closed->value)
+                        ->where('tasks_count', 0)
+                        ->where('completed_tasks_count', 0)
+                        ->missing('created_at')
+                        ->missing('updated_at')
+                )
+                ->etc()
+            );
+    }
+
+    public function test_index_filters_only_closed_projects()
+    {
+        $user = User::factory()->create();
+        Project::factory()->create([
+            'title' => 'Project A',
+            'description' => 'Project A description',
+            'status' => ProjectStatusEnum::Open->value
+        ]);
+
+        $projectB = Project::factory()->create([
+            'title' => 'Project B',
+            'description' => 'Project B description',
+            'status' => ProjectStatusEnum::Closed->value
+        ]);
+
+        $expected_slugB = Slugify::create()->slugify($projectB->id ." Project B");
+
+        $response = $this->actingAs($user)
+            ->getJson(parent::BASE_URL."?onlyClosed=true&sortBy=".CustomOrderByEnum::ALPHA_DESC->value."&page=1&perPage=5")
+            ->assertStatus(200);
+
+        $response->assertJson(fn (AssertableJson $json) =>
+        $json->has('data', 1)
+            ->has('data.0', fn(AssertableJson $json) =>
+            $json->where('id', $projectB->id)
+                ->where('title', 'Project B')
+                ->where('description', 'Project B description')
+                ->where('slug',$expected_slugB)
+                ->where('status', ProjectStatusEnum::Closed->value)
+                ->where('tasks_count', 0)
+                ->where('completed_tasks_count', 0)
+                ->missing('created_at')
+                ->missing('updated_at')
+            )
+            ->etc()
+        );
+    }
+
+    public function test_index_filters_orders()
+    {
+        $user = User::factory()->create();
+        $projectA = Project::factory()->create([
+            'title' => 'Project A',
+            'description' => 'Project A description',
+            'status' => ProjectStatusEnum::Open->value
+        ]);
+
+        //sleep to diff created dates of 1 second
+        sleep(1);
+
+        $projectB = Project::factory()->create([
+            'title' => 'Project B',
+            'description' => 'Project B description',
+            'status' => ProjectStatusEnum::Open->value
+        ]);
+
+        $expected_slugA = Slugify::create()->slugify($projectA->id ." Project A");
+        $expected_slugB = Slugify::create()->slugify($projectB->id ." Project B");
+
+        $response = $this->actingAs($user)
+            ->getJson(parent::BASE_URL."?sortBy=".CustomOrderByEnum::CREATE->value."&page=1&perPage=5")
+            ->assertStatus(200);
+
+        $response->assertJson(fn (AssertableJson $json) =>
+        $json->has('data', 2)
+            ->has('data.1', fn (AssertableJson $json) =>
+            $json->where('id', $projectA->id)
+                ->where('title', 'Project A')
+                ->where('description', 'Project A description')
+                ->where('slug',$expected_slugA)
+                ->where('status', ProjectStatusEnum::Open->value)
+                ->where('tasks_count', 0)
+                ->where('completed_tasks_count', 0)
+                ->missing('created_at')
+                ->missing('updated_at')
+            )
+            ->has('data.0', fn(AssertableJson $json) =>
+            $json->where('id', $projectB->id)
+                ->where('title', 'Project B')
+                ->where('description', 'Project B description')
+                ->where('slug',$expected_slugB)
+                ->where('status', ProjectStatusEnum::Open->value)
+                ->where('tasks_count', 0)
+                ->where('completed_tasks_count', 0)
+                ->missing('created_at')
+                ->missing('updated_at')
+            )
+            ->etc()
+        );
+
+        $response = $this->actingAs($user)
+            ->getJson(parent::BASE_URL."?sortBy=".CustomOrderByEnum::UPDATE->value."&page=1&perPage=5")
+            ->assertStatus(200);
+
+        $response->assertJson(fn (AssertableJson $json) =>
+        $json->has('data', 2)
+            ->has('data.1', fn (AssertableJson $json) =>
+            $json->where('id', $projectA->id)
+                ->where('title', 'Project A')
+                ->where('description', 'Project A description')
+                ->where('slug',$expected_slugA)
+                ->where('status', ProjectStatusEnum::Open->value)
+                ->where('tasks_count', 0)
+                ->where('completed_tasks_count', 0)
+                ->missing('created_at')
+                ->missing('updated_at')
+            )
+            ->has('data.0', fn(AssertableJson $json) =>
+            $json->where('id', $projectB->id)
+                ->where('title', 'Project B')
+                ->where('description', 'Project B description')
+                ->where('slug',$expected_slugB)
+                ->where('status', ProjectStatusEnum::Open->value)
+                ->where('tasks_count', 0)
+                ->where('completed_tasks_count', 0)
+                ->missing('created_at')
+                ->missing('updated_at')
+            )
+            ->etc()
+        );
+    }
+
+    public function test_index_invalid_order_filter_value_returns_422()
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->getJson(parent::BASE_URL."?sortBy=fakevalue")
+            ->assertStatus(422);
     }
 }

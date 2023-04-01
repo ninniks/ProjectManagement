@@ -62,11 +62,6 @@ class Project extends Model
         return $this->hasMany(Task::class, 'project_id', 'id');
     }
 
-    public function scopeTask(Builder $builder, $task_id): Builder
-    {
-        return $builder->whereRelation('tasks', 'tasks.id', '=', $task_id);
-    }
-
     /**
      * @return int
      */

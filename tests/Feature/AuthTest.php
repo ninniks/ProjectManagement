@@ -32,6 +32,23 @@ class AuthTest extends TestCase
 
     }
 
+    public function test_login_with_wrong_credentials_returns_401()
+    {
+        $user = User::factory()->create([
+            'email' => 'test@admin.com',
+            'password' => Hash::make('password')
+        ]);
+
+        $this->postJson('/api/login', [
+            'email' => $user->email,
+            'password' =>  'wrongpassword'
+        ])
+            ->assertStatus(401)
+            ->assertExactJson([
+                'error' => 'Unauthorized'
+            ]);
+    }
+
     public function test_index_projects_without_auth_token_failure(): void
     {
         $response = $this->getJson(self::PROJECT_BASE_URL);

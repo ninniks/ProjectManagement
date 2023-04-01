@@ -16,7 +16,7 @@ class AcceptOnlyJsonRequest
     public function handle(Request $request, Closure $next): Response
     {
         if ($request->header('Content-Type') != 'application/json') {
-            return response()->json(["error" => "Unsupported media type"], 415);
+            return response()->json(["error" => "Unsupported Content-Type"], 415);
         }
 
         return $next($request);

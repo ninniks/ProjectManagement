@@ -5,10 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Rules\UserLoginRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Laravel\Passport\Guards\TokenGuard;
 
 class UserController extends Controller
 {
+    /**
+     * @param UserLoginRequest $request
+     * @return JsonResponse
+     *
+     * Authenticate user with username and password
+     */
     public function login(UserLoginRequest $request): JsonResponse
     {
 

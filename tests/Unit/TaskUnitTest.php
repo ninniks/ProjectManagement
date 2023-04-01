@@ -226,4 +226,41 @@ class TaskUnitTest extends TestCase
             ->patchJson(parent::BASE_URL . $project->id ."/tasks/$task2->id/".TaskStatusEnum::Blocked->value)
             ->assertStatus(400);
     }
+
+    public function test_find_not_existent_task_fails()
+    {
+        $user = User::factory()->create();
+        $project = Project::factory()->create([
+            'status' => ProjectStatusEnum::Closed->value
+        ]);
+
+        Task::factory()->create([
+            'project_id' => $project->id,
+            'status'=> TaskStatusEnum::Closed->value
+        ]);
+
+        $fake_task_uuid = fake()->uuid();
+
+        $this->actingAs($user)
+            ->getJson(parent::BASE_URL . $project->id ."/tasks/$fake_task_uuid/")
+            ->assertStatus(404);
+    }
+
+    public function test_store_new_task_in_a_non_existent_project_returns_404()
+    {
+        $user = User::factory()->create();
+        $fake_project_uuid = fake()->uuid();
+
+        $expected_data = [
+            'title' => 'Task 1 modified',
+            'description' => 'This is the first task modified of the Project',
+            'assignee' => $user->id,
+            'difficulty' => TaskDifficultyEnum::DIFFICULTY_FIVE->value,
+            'priority' => TaskPriorityEnum::Low->value
+        ];
+
+        $this->actingAs($user)
+            ->postJson(self::BASE_URL .$fake_project_uuid ."/tasks", $expected_data)
+            ->assertStatus(404);
+    }
 }

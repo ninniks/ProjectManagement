@@ -50,7 +50,7 @@ class ProjectTaskController extends Controller
         try {
             $task = $this->taskRepository->find($project_id, $task_id);
         }catch (TaskNotFoundException $e){
-            return response()->json(["error" => $e->getMessage()], 404);
+            return response()->json(["error" => $e->getMessage()], $e->getCode());
         }
 
         return response()->json(["data" => $task]);
