@@ -6,7 +6,14 @@
         "JWT",
         "TEST"
     ],
+    "addons": [
+        {
+            "plan": "jawsdb:free",
+            "as": "JAWS_JADE"
+        }
+    ],
     "repository": "https://github.com/ninniks/ProjectManagement.git",
+
     "environments": {
         "test": {
             "scripts": {
