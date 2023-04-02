@@ -1,16 +1,10 @@
 {
     "name": "Project Management APP",
-    "description": "This is an application for mangaging projects with tasks",
+    "description": "This is an application for managing projects with tasks",
     "keywords": [
         "Laravel",
         "JWT",
         "TEST"
-    ],
-    "addons": [
-        {
-            "plan": "jawsdb:free",
-            "as": "JAWS_JADE"
-        }
     ],
     "repository": "https://github.com/ninniks/ProjectManagement.git",
 
